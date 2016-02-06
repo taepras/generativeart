@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>taepras's random html experiments</title>
+	<meta name="viewport" content="width=device-width, initial-size=1.0">
+	<style>
+	body{
+		margin:0;
+		padding: 0 30px;
+		font-family: 'consolas', monospace;
+		text-align: center;
+		background-color: #222;
+		color:#ddd;
+	}
+	.container{
+		max-width: 500px;
+		margin:0 auto;
+		padding-top: 150px;
+	}
+	.navlink{
+		display:block;
+		border:1px #ddd solid;
+		color:#ddd;
+		padding:10px;
+		text-decoration:none;
+		transition: 0.3s all;
+		margin: 15px 0;
+	}
+	.navlink:last-of-type{
+		margin-bottom:20px;
+	}
+	.navlink:hover{
+		background-color: #555;
+	}
+	.navlink:active{
+		background-color: #fff;
+	}
+	.taepras{margin-bottom:-20px;}
+	.rainbow{animation: rainbow 30s linear infinite;}
+	@keyframes rainbow{
+		0%  {color: #f00;}
+		17% {color: #ff0;}
+		33% {color: #0f0;}
+		50% {color: #0ff;}
+		67% {color: #55f;}
+		83% {color: #f0f;}
+		100%{color: #f00;}
+	}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h2 class="taepras">taepras's</h2>
+		<h1 class="rainbow">random html experiments</h1>
+		<a href="1" class="navlink" target="_blank">#1</a>
+		<a href="2" class="navlink" target="_blank">#2</a>
+		<a href="3" class="navlink" target="_blank">#3</a>
+		(c) taepras
+	</div>
+</body>
+</html>
