@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0"
+	<title></title>
+	<script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
+	<style>
+	body{margin:0}
+	.bg{position:absolute;width:100%;}
+	.fg{position:absolute;width:100%;}
+	.black-bar{
+		background-color: rgba(0,0,0,0.7);
+		height: 5px;
+		width: 100%;
+	}
+	.transparent-bar{
+		background-color: transparent;
+		height: 1px;
+		width: 100%;
+	}
+	.ffg{height:10000px;}
+	</style>
+</head>
+<body>
+	<div class="bg"></div>
+	<div class="fg"></div>
+</body>
+<script>
+var iterations = 1000;
+$(document).ready(function(){
+
+	$(window).scroll(function(){
+		$('.bg').css({
+			'top' : ($(this).scrollTop() / 1.2) + "px"
+		});
+		$('.fg').css({
+			'top' : ($(this).scrollTop() / 1.5) + "px"
+		});
+	});
+
+	addBars('.bg', iterations);
+	addBars('.fg', iterations);
+});
+
+function addBars(parent, iterations){
+	for(var i = 0; i < iterations; i++){
+		var blkBar = $('<div class="black-bar"/>');
+		var tprBar = $('<div class="transparent-bar"/>');
+		blkBar.height(Math.random() * 5 + 5);
+		tprBar.height(Math.random() * 5 + 5);
+		$(parent).append(blkBar);
+		$(parent).append(tprBar);
+	}
+}
+</script>
+</html>
