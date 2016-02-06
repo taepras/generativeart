@@ -9,6 +9,7 @@
 	body{
 		font-family: courier, sans-serif;
 		margin: 0;
+		overflow-y: hidden;
 		background-image: url('animbg_frombehance.png');
 		background-attachment: fixed;
 		background-repeat: no-repeat;
@@ -44,12 +45,12 @@
 <script>
 var frames = 6;
 var loopTime = 600;
-var iterations = 100;
+var iterations = 500;
 $(document).ready(function(){
 
 	loop();
 
-	for(var i = 0; i < iterations * 6; i++){
+	for(var i = 0; i < iterations + $(window).height() / frames; i++){
 		$('body').append($('<div class="black-bar"/>'));
 		$('body').append($('<div class="transparent-bar"/>'));
 	}
