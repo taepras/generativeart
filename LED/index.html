@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED pattern generator</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #222;
+        }
+
+        #preview {
+            overflow: visible;
+            width: 100%;
+            height: 400px;
+        }
+
+        #timeline {
+            overflow: visible;
+            width: 100%;
+            height: 200px;
+        }
+
+        path.curve {
+            cursor: crosshair;
+        }
+
+        .curve-node {
+            cursor: move;
+        }
+
+        .led {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 100px auto;
+            background-color: #f55;
+            box-shadow: 0 0 100px #f00, inset 0 0 50px #f00, inset 0 0 30px #f00;
+        }
+
+        .axis line {
+            stroke: #fff4;
+        }
+
+        .axis path {
+            stroke: #fff4;
+        }
+
+        .axis text {
+            fill: #fff4;
+        }
+    </style>
+</head>
+<body>
+    <div class="led"></div>
+    <svg id="timeline"></svg>
+
+    <!-- <input type="checkbox" name="loop" id="loop"></input> -->
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/p5@1.0.0/lib/p5.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.1/d3.min.js"></script>
+    <script>
+        class AnchorPoint {
+            constructor (time, value, transitionNext = Transition.LINEAR) {
+                this.time = time;
+                this.value = value;
+                this.transitionNext = transitionNext;
+            }
+        }
+
+        const Transition = {
+            CONSTANT: x => 0,
+            LINEAR: x => x,
+            EASEINOUT: {
+                SINE: x => Math.sin( x * Math.PI - Math.PI / 2 ) / 2 + 0.5,
+                QUADRATIC: x => x < .5 ? 2 * x * x : -1 + (4 - 2 * x) * x,
+                CUBIC: x => x < .5 ? 4 * x * x * x : (x - 1) * (2 * x -2) * (2 * x - 2) + 1
+            },
+            EASEIN: {
+                SINE: x => Math.sin( x * Math.PI / 2 - Math.PI / 2 ) + 1,
+                QUADRATIC: x => x * x,
+                CUBIC: x => x * x * x
+            },
+            EASEOUT: {
+                SINE: x => Math.sin( x * Math.PI / 2 ),
+                QUADRATIC: x => x * (2 - x),
+                CUBIC: x => (--x) * x * x + 1
+            }
+        }
+
+        const presets = {
+            'Breathing': {
+                duration: 7000,
+                animation: [
+                    new AnchorPoint(0, 0, Transition.EASEINOUT.SINE),
+                    new AnchorPoint(3500, 1, Transition.EASEINOUT.SINE),
+                    new AnchorPoint(700, 1, Transition.EASEINOUT.SINE)
+                ]
+            }
+        }
+    </script>
+    <script>
+        let curveData = {
+            duration: 4000,
+            animation: [
+                new AnchorPoint(0, 0, Transition.EASEOUT.SINE),
+                new AnchorPoint(500, 1, Transition.EASEIN.SINE),
+                new AnchorPoint(1000, 0, Transition.EASEOUT.LINEAR),
+                new AnchorPoint(1500, 1, Transition.EASEIN.LINEAR),
+                new AnchorPoint(2000, 0, Transition.EASEIN.CUBIC),
+                new AnchorPoint(2500, 1, Transition.EASEOUT.CUBIC),
+                new AnchorPoint(3000, 0, Transition.CONSTANT),
+                new AnchorPoint(3250, 1, Transition.CONSTANT),
+                new AnchorPoint(3750, 0, Transition.CONSTANT)
+            ]
+        }
+        // const curveData.duration = 4000;
+
+        // let animation = [
+        //     new AnchorPoint(0, 0, Transition.EASEOUT.SINE),
+        //     new AnchorPoint(500, 1, Transition.EASEIN.SINE),
+        //     new AnchorPoint(1000, 0, Transition.EASEOUT.LINEAR),
+        //     new AnchorPoint(1500, 1, Transition.EASEIN.LINEAR),
+        //     new AnchorPoint(2000, 0, Transition.EASEIN.CUBIC),
+        //     new AnchorPoint(2500, 1, Transition.EASEOUT.CUBIC),
+        //     new AnchorPoint(3000, 0, Transition.CONSTANT),
+        //     new AnchorPoint(3250, 1, Transition.CONSTANT),
+        //     new AnchorPoint(3750, 0, Transition.CONSTANT)
+        // ];
+
+        function applyTransition (transition, a, b, x) {
+            return (b - a) * transition(x) + a;
+        }
+
+        
+
+        function setup () {
+
+        }
+
+        function draw () {
+            let t = new Date();
+            background(0);
+            noStroke();
+
+            let val = valueAtTime(t);
+            console.log(val);
+            fill(255 * val);
+
+            circle(width / 2, height / 2, 10);
+        }
+
+        function valueAtTime (time, isLooping = true) {
+            let t = isLooping ? time % curveData.duration : time;
+            let i = 0;
+            curveData.animation.sort((a, b) => a.time - b.time);
+
+            while (i < curveData.animation.length && t > curveData.animation[i].time) { 
+                i++; 
+            }
+            
+            i--;
+            if (i < 0) {
+                return 0;
+            }
+            if (i < curveData.animation.length - 1) {
+                let x = (t - curveData.animation[i].time) / (curveData.animation[i + 1].time - curveData.animation[i].time)
+                return applyTransition(curveData.animation[i].transitionNext, curveData.animation[i].value, curveData.animation[i + 1].value, x);
+            }
+
+            return curveData.animation[curveData.animation.length - 1].value;
+        }
+
+        let timeline = d3.select('#timeline');
+
+        let x = d3.scaleLinear()
+            .domain([0, curveData.duration])
+            .range([0, parseInt(timeline.style('width'), 10)])
+            .clamp(true);
+
+        let y = d3.scaleLinear()
+            .domain([0, 1])
+            .range([parseInt(timeline.style('height'), 10), 0])
+            .clamp(true);
+
+        function drawCurveNodes () {
+            let curveNode = timeline.selectAll('circle')
+                .data(curveData.animation)
+
+            let curveNodeEnter = curveNode.enter()
+                .append('circle')
+                .attr('class', 'curve-node')
+                .attr('fill', '#ffffff')
+                .attr('r', 10)
+                .call(d3.drag()
+                    .on('drag', function (d) {
+                        console.log('!!');
+                        // d.isDragging = true;
+                        d.time = x.invert(d3.event.x);
+                        d.value = y.invert(d3.event.y);
+
+                        drawCurveNodes();
+                        drawCurveLine();
+                    })
+                )
+                .on('click', function (d) {
+                    const index = curveData.animation.indexOf(d);
+                    if (index > -1) {
+                        curveData.animation.splice(index, 1);
+                    }
+                    drawCurveNodes();
+                    drawCurveLine();
+                });
+
+            curveNode.merge(curveNodeEnter)
+                .attr('cx', d => x(d.time))
+                .attr('cy', d => y(d.value));
+
+            curveNode.exit().remove();
+        }
+
+        function calculateCurve () {
+            let curvePath = d3.path();
+            let TIME_TICK_INTERVAL = 10;  //one tick is 10 ms
+            curvePath.moveTo(x(0), y(0));
+            curvePath.lineTo(x(curveData.animation[0].time), y(curveData.animation[0].value));
+            for (let i = 0; i < curveData.animation.length - 1; i++) {
+                if (curveData.animation[i].transitionNext === Transition.CONSTANT) {
+                    curvePath.lineTo(x(curveData.animation[i].time), y(curveData.animation[i].value));
+                    curvePath.lineTo(x(curveData.animation[i + 1].time), y(curveData.animation[i].value));
+                } else if (curveData.animation[i].transitionNext === Transition.LINEAR) {
+                    curvePath.lineTo(x(curveData.animation[i + 1].time), y(curveData.animation[i + 1].value));
+                } else {
+                    let t = curveData.animation[i].time;
+                    while (t <= curveData.animation[i + 1].time) {
+                        let val = valueAtTime(t);
+                        curvePath.lineTo(x(t), y(val));
+                        t += TIME_TICK_INTERVAL;
+                    }
+                    curvePath.lineTo(x(curveData.animation[i + 1].time), y(curveData.animation[i + 1].value));
+                }
+            }
+            
+            let lastI = curveData.animation.length - 1;
+            if (curveData.animation[lastI].time <= curveData.duration) {
+                curvePath.lineTo(x(curveData.animation[lastI].time), y(curveData.animation[lastI].value));
+                curvePath.lineTo(curveData.duration, y(curveData.animation[lastI].value));
+            }
+
+            return curvePath;
+        }
+
+        let curve = timeline.append('path')
+            .attr('class', 'curve')
+            .attr("stroke-width", "5")
+            .attr("stroke", "#ffffff")
+            .attr('fill', 'none')
+            .on('click', function () {
+                console.log(d3.mouse(this)[1], d3.event.y, y.invert(d3.event.y));
+                curveData.animation.push(new AnchorPoint(
+                    x.invert(d3.mouse(this)[0]),
+                    y.invert(d3.mouse(this)[1]),
+                    Transition.LINEAR));
+                curveData.animation.sort((a, b) => a.time - b.time);
+                drawCurveNodes();
+            });
+
+        function drawCurveLine () {
+            curve.attr('d', calculateCurve().toString());
+        }
+
+
+        drawCurveLine();
+        drawCurveNodes();
+
+        let playHead = timeline.append('line')
+            .attr('x1', x(0))
+            .attr('y1', y(0))
+            .attr('x2', x(0))
+            .attr('y2', y(1))
+            .attr("stroke-width", "2")
+            .attr("stroke", "#ff0000")
+
+        let axisTime = d3.axisBottom(x)
+            .tickSize(parseInt(timeline.style('height'), 10));
+        let axisValue = d3.axisLeft(y)
+            .tickSize(-parseInt(timeline.style('width'), 10));
+        timeline.append('g')
+            .attr('class', 'axis')
+            .call(axisTime);
+        timeline.append('g')
+            .attr('class', 'axis')
+            .call(axisValue);
+        
+
+
+        function drawFrame () {
+            
+            let t = new Date();
+            
+            let isLooping = true;
+            let tAdjusted = isLooping ? t % curveData.duration : t;
+
+            playHead
+                .attr('x1', x(tAdjusted))
+                .attr('x2', x(tAdjusted));
+            d3.select('.led').style('opacity', valueAtTime(tAdjusted));
+            // previewLed
+            //     .attr('fill', colorLerp(valueAtTime(tAdjusted))); 
+
+            requestAnimationFrame(function () {
+                requestAnimationFrame(drawFrame);
+            });
+        }
+
+        drawFrame();
+    </script>
+</body>
+</html>

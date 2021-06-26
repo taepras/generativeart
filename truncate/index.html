@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>truncate</title>
+    <style>
+        body {
+            display: flex;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            background-color: #000;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.0.0/p5.js"></script>
+    <script>
+        let s = 120; // base coordinates multiplier in pixel (cube vertices at (+/-s, +/-s, +/-s))
+        let phase = 0;
+        let octaOffset = 1.81712059283; // coordinates multiplier for constant volume
+        let octaCuboOffset = 1.1856311015; // coordinates multiplier for constant volume
+
+
+        function setup() {
+            createCanvas(800, 800, WEBGL);
+        }
+
+        function ease2(t) {
+            // "double" cubic ease in-out, hacky solution. 
+            // 0 -> 0.5 for cube -> oct, 0.5 -> 1 for oct -> cube
+            return t < 0.5 ? ease(t * 2) / 2 : 0.5 + ease((t - 0.5) * 2) / 2;
+        }
+
+        // function ease (t) {
+        //     return -1/2 * (Math.cos(Math.PI * t) - 1) + 1;
+        // }
+        function ease(t, b = 1, c = 1, d = 1) { // cubic ease in-out
+            t /= d / 2;
+            if (t < 1) return c / 2 * t * t * t + b;
+            t -= 2;
+            return c / 2 * (t * t * t + 2) + b;
+        };
+
+        function draw() {
+            let t = new Date() / 1000;
+            let loopTime = 3
+
+            let easePeriod = loopTime * 2;
+            let thetaWhole = ease2((t % easePeriod) / easePeriod);
+            phase = Math.floor(thetaWhole * 4) % 4;
+
+            let theta = (thetaWhole * 4) % 1;
+
+            console.log(phase, theta);
+
+            background(0);
+            noFill();
+            stroke(255);
+            strokeWeight(3);
+            // strokeCap(ROUND);
+            rotate(-Math.PI / 8, createVector(1, 0, 0));
+            rotate(t / 6 * Math.PI, createVector(0, 1, 0));
+            // line(0, 0, 0, s, 0, 0);
+            // line(0, 0, 0, -s, 0, 0);
+            // line(0, 0, 0, 0, s, 0);
+            // line(0, 0, 0, 0, -s, 0);
+            // line(0, 0, 0, 0, 0, s);
+            // line(0, 0, 0, 0, 0, -s);
+
+            push();
+            // cube faces / octahedron corners
+            for (let i = 0; i < 6; i++) {
+                switch (i) {
+                    case 0:
+                        rotate(0, createVector(0, 1, 0));
+                        break;
+                    case 1:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                    case 2:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                    case 3:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                    case 4:
+                        rotate(Math.PI / 2, createVector(0, 0, 1));
+                        break;
+                    case 5:
+                        rotate(Math.PI, createVector(0, 0, 1));
+                        break;
+                }
+                beginShape(TESS);
+                if (phase == 0) { // cube to cuboctahedron
+                    let sAdjusted = s * (1 + (octaCuboOffset - 1) * theta);
+                    let a = sAdjusted * theta;
+                    vertex(sAdjusted, sAdjusted - a, sAdjusted);
+                    vertex(sAdjusted, sAdjusted, sAdjusted - a);
+                    vertex(sAdjusted, sAdjusted, -sAdjusted + a);
+                    vertex(sAdjusted, sAdjusted - a, -sAdjusted);
+                    vertex(sAdjusted, -sAdjusted + a, -sAdjusted);
+                    vertex(sAdjusted, -sAdjusted, -sAdjusted + a);
+                    vertex(sAdjusted, -sAdjusted, sAdjusted - a);
+                    vertex(sAdjusted, -sAdjusted + a, sAdjusted);
+                } else if (phase == 1) { // cuboctahedron to octahedron
+                    let sAdjusted = s * (octaCuboOffset + (octaOffset - octaCuboOffset) * theta);
+                    let a = sAdjusted - sAdjusted * theta
+                    vertex(sAdjusted, 0, a);
+                    vertex(sAdjusted, a, 0);
+                    vertex(sAdjusted, a, 0);
+                    vertex(sAdjusted, 0, -a);
+                    vertex(sAdjusted, 0, -a);
+                    vertex(sAdjusted, -a, 0);
+                    vertex(sAdjusted, -a, 0);
+                    vertex(sAdjusted, 0, a);
+                } else if (phase == 2) { // octahedron to cuboctahedron
+                    let sAdjusted = s * (octaCuboOffset + (octaOffset - octaCuboOffset) * (1 - theta));
+                    let a = sAdjusted * theta;
+                    vertex(sAdjusted, 0, a);
+                    vertex(sAdjusted, a, 0);
+                    vertex(sAdjusted, a, 0);
+                    vertex(sAdjusted, 0, -a);
+                    vertex(sAdjusted, 0, -a);
+                    vertex(sAdjusted, -a, 0);
+                    vertex(sAdjusted, -a, 0);
+                    vertex(sAdjusted, 0, a);
+                } else if (phase == 3) { // cuboctahedron to cube
+                    let sAdjusted = s * (1 + (octaCuboOffset - 1) * (1 - theta));
+                    let a = sAdjusted - sAdjusted * theta;
+                    vertex(sAdjusted, sAdjusted - a, sAdjusted);
+                    vertex(sAdjusted, sAdjusted, sAdjusted - a);
+                    vertex(sAdjusted, sAdjusted, -sAdjusted + a);
+                    vertex(sAdjusted, sAdjusted - a, -sAdjusted);
+                    vertex(sAdjusted, -sAdjusted + a, -sAdjusted);
+                    vertex(sAdjusted, -sAdjusted, -sAdjusted + a);
+                    vertex(sAdjusted, -sAdjusted, sAdjusted - a);
+                    vertex(sAdjusted, -sAdjusted + a, sAdjusted);
+                }
+                endShape(CLOSE);
+            }
+            pop();
+
+
+            push();
+            // cube corners / octahedron faces
+            for (let i = 0; i < 8; i++) {
+                switch (i) {
+                    case 0:
+                        rotate(0, createVector(0, 1, 0));
+                        break;
+                    case 1:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                    case 2:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                    case 3:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                    case 4:
+                        rotate(Math.PI, createVector(0, 0, 1));
+                        break;
+                    case 5:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                    case 6:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                    case 7:
+                        rotate(Math.PI / 2, createVector(0, 1, 0));
+                        break;
+                }
+
+                if (phase == 0) {
+                    let sAdjusted = s * (1 + (octaCuboOffset - 1) * theta);
+                    let a = sAdjusted * theta;
+
+                    line(sAdjusted, sAdjusted - a, sAdjusted, sAdjusted, sAdjusted - a, sAdjusted);
+                    line(sAdjusted, sAdjusted - a, sAdjusted, sAdjusted, sAdjusted, sAdjusted - a);
+                    line(sAdjusted, sAdjusted, sAdjusted - a, sAdjusted, sAdjusted, sAdjusted - a);
+                    line(sAdjusted, sAdjusted, sAdjusted - a, sAdjusted - a, sAdjusted, sAdjusted);
+                    line(sAdjusted - a, sAdjusted, sAdjusted, sAdjusted - a, sAdjusted, sAdjusted);
+                    line(sAdjusted - a, sAdjusted, sAdjusted, sAdjusted, sAdjusted - a, sAdjusted);
+                } else if (phase == 1) {
+                    let sAdjusted = s * (octaCuboOffset + (octaOffset - octaCuboOffset) * theta);
+                    let a = sAdjusted * theta;
+
+                    line(sAdjusted - a, 0, sAdjusted, sAdjusted, 0, sAdjusted - a);
+                    line(sAdjusted, 0, sAdjusted - a, sAdjusted, sAdjusted - a, 0);
+                    line(sAdjusted, sAdjusted - a, 0, sAdjusted - a, sAdjusted, 0);
+                    line(sAdjusted - a, sAdjusted, 0, 0, sAdjusted, sAdjusted - a);
+                    line(0, sAdjusted, sAdjusted - a, 0, sAdjusted - a, sAdjusted);
+                    line(0, sAdjusted - a, sAdjusted, sAdjusted - a, 0, sAdjusted);
+                } else if (phase == 2) {
+                    let sAdjusted = s * (octaCuboOffset + (octaOffset - octaCuboOffset) * (1 - theta));
+                    let a = sAdjusted * (1 - theta);
+
+                    line(sAdjusted - a, 0, sAdjusted, sAdjusted, 0, sAdjusted - a);
+                    line(sAdjusted, 0, sAdjusted - a, sAdjusted, sAdjusted - a, 0);
+                    line(sAdjusted, sAdjusted - a, 0, sAdjusted - a, sAdjusted, 0);
+                    line(sAdjusted - a, sAdjusted, 0, 0, sAdjusted, sAdjusted - a);
+                    line(0, sAdjusted, sAdjusted - a, 0, sAdjusted - a, sAdjusted);
+                    line(0, sAdjusted - a, sAdjusted, sAdjusted - a, 0, sAdjusted);
+                } else if (phase == 3) {
+                    let sAdjusted = s * (1 + (octaCuboOffset - 1) * (1 - theta));
+                    let a = sAdjusted * (1 - theta);
+
+                    line(sAdjusted, sAdjusted - a, sAdjusted, sAdjusted, sAdjusted - a, sAdjusted);
+                    line(sAdjusted, sAdjusted - a, sAdjusted, sAdjusted, sAdjusted, sAdjusted - a);
+                    line(sAdjusted, sAdjusted, sAdjusted - a, sAdjusted, sAdjusted, sAdjusted - a);
+                    line(sAdjusted, sAdjusted, sAdjusted - a, sAdjusted - a, sAdjusted, sAdjusted);
+                    line(sAdjusted - a, sAdjusted, sAdjusted, sAdjusted - a, sAdjusted, sAdjusted);
+                    line(sAdjusted - a, sAdjusted, sAdjusted, sAdjusted, sAdjusted - a, sAdjusted);
+                }
+
+            }
+            pop();
+        }
+    </script>
+</body>
+
+</html>

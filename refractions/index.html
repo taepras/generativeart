@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refractions</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.3.1/p5.min.js"></script>
+    <script>
+        let surfaces = []
+        let photons = []
+
+        function intersects(p1, p2, q1, q2) {
+            let a = p1.x
+            let b = p1.y
+            let c = p2.x
+            let d = p2.y
+            let p = q1.x
+            let q = q1.y
+            let r = q2.x
+            let s = q2.y
+            var det, gamma, lambda;
+            det = (c - a) * (s - q) - (r - p) * (d - b);
+            if (det === 0) {
+                return false;
+            } else {
+                lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+                gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+                return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+            }
+        };
+
+        function crossSign(v, w) {
+            return Math.sign(v.x * w.y - w.x * v.y)
+        }
+
+        function colorFromWavelength(lambda) {
+            const minLambda = 400
+            const maxLambda = 700
+            const a = (lambda - minLambda) / (maxLambda - minLambda)
+            const h = lerp(240, 0, a)
+            return color(h, 100, 40)
+        }
+
+        function findIntersectionGivenIntersecting(p1, p2, q1, q2) {
+            const l = p5.Vector.sub(p2, p1)
+            const lPrime = p5.Vector.sub(q1, p1)
+            // project l1 onto l2
+            const projectedMag = p5.Vector.dot(l, lPrime) / l.mag()
+            const normalizedDir = p5.Vector.normalize(l)
+            console.log(projectedMag, )
+            return p5.Vector.add(p1, p5.Vector.mult(normalizedDir, projectedMag))
+        }
+
+        class Surface {
+            constructor(p0, normal, width, nRatio = 1.4) {
+                this.p0 = p0
+                this.normal = normal.copy()
+                this.normal.normalize()
+                this.width = width
+                this.nRatio = nRatio
+
+                const perp = normal.copy()
+                perp.rotate(HALF_PI)
+                perp.normalize()
+                perp.mult(this.width / 2)
+                this.p1 = p5.Vector.add(this.p0, perp)
+                this.p2 = p5.Vector.add(this.p0, p5.Vector.mult(perp, -1))
+            }
+
+            draw() {
+                stroke(0, 0, 100)
+                line(this.p1.x, this.p1.y, this.p2.x, this.p2.y)
+                // stroke(0, 100, 100)
+                // const n = p5.Vector.add(this.p0, p5.Vector.mult(this.normal, 20))
+                // line(this.p0.x, this.p0.y, n.x, n.y)
+            }
+        }
+
+        class Photon {
+            constructor(pos, wavelength = 700, color = '#f00', r = 5) {
+                this.pos = pos.copy()
+                this.prevPos = pos.copy()
+                this.color = color
+                this.wavelength = wavelength
+                this.r = r
+
+                this.acc = createVector(0, 0) // acceleration
+                this.vel = createVector(0, 0) // velocity
+            }
+
+            getMass() {
+                return Math.PI * this.r * this.r * this.rho
+            }
+
+            addForce(f) {
+                this.acc.add(p5.Vector.div(f, this.getMass()))
+            }
+
+            update() {
+                this.prevPos = this.pos.copy()
+                this.pos.add(p5.Vector.mult(this.vel, deltaTime / 100))
+                this.vel.add(p5.Vector.mult(this.acc, deltaTime / 100))
+                this.acc.set(0, 0)
+            }
+
+            draw() {
+                // console.log(this.pos, this.vel, this.acc)
+                const c = colorFromWavelength(this.wavelength)
+                noStroke()
+                fill(c)
+                circle(this.pos.x, this.pos.y, this.r * 2)
+            }
+
+            refract(surface) {
+                if (intersects(surface.p1, surface.p2, this.prevPos, this.pos)) {
+                    // console.log('!!!')
+                    let nRatio = (
+                        p5.Vector.dot(
+                            p5.Vector.sub(this.pos, this.prevPos),
+                            surface.normal
+                        ) < 0
+                    ) ? surface.nRatio : 1 / surface.nRatio
+
+                    nRatio -= (550 - this.wavelength) / 700
+
+                    // console.log(nRatio, this.wavelength)
+
+                    const normVel = this.vel.copy()
+                    normVel.normalize()
+
+                    const incomingCosTheta = normVel.dot(surface.normal)
+
+                    let normalizedInocomingAngle = incomingCosTheta > 0 ?
+                        Math.acos(incomingCosTheta) :
+                        PI - Math.acos(incomingCosTheta)
+
+                    console.log(normalizedInocomingAngle * 180 / PI)
+
+                    if (incomingCosTheta == 1) return
+
+                    const incomingSinTheta = Math.sqrt(1 - incomingCosTheta * incomingCosTheta)
+
+                    const outgoingSinTheta = incomingSinTheta / nRatio
+                    const outgoingDir = surface.normal.copy()
+
+                    if (incomingCosTheta <= 0)
+                        outgoingDir.mult(-1)
+                    
+                    const sign = crossSign(this.vel, outgoingDir)
+                    if (-1 <= outgoingSinTheta && outgoingSinTheta <= 1) {
+                        outgoingDir.rotate(-sign * Math.asin(outgoingSinTheta))
+                    } else {
+                        outgoingDir.rotate(PI + sign * Math.acos(incomingCosTheta))
+                    }
+
+                    this.vel.setHeading(outgoingDir.heading())
+                    this.pos = findIntersectionGivenIntersecting(surface.p1, surface.p2, this.prevPos, this.pos ).copy()
+                    console.log(this.pos)
+
+                    this.update()
+                    // if (-1 > outgoingSinTheta || outgoingSinTheta > 1)
+                    //     this.pos.add(p5.Vector.mult(this.vel, deltaTime / 100))
+                }
+            }
+        }
+
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight)
+            colorMode(HSB)
+            blendMode(SCREEN)
+
+            const m = 40;
+            const center = createVector(width / 2, height / 2)
+            for (let i = 0; i < m; i++) {
+                surfaces.push(new Surface(
+                    p5.Vector.add(p5.Vector.fromAngle(i / m * (2 * PI) + PI / 2, 150), center),
+                    // createVector(-5, 1),
+                    p5.Vector.fromAngle(i / m * (2 * PI) + PI / 2, 1),
+                    412,
+                    2
+                ))
+            }
+
+            let n = 100
+            let maxLambda = 700
+            let minLambda = 400
+
+            photons = [...new Array(n)].map((_, i) => new Photon(
+                createVector(width / 2 - 400, height / 2 + 100),
+                // 400
+                (maxLambda - minLambda) * i / (n - 1) + minLambda
+            ))
+
+            photons.forEach(p => p.vel.set(20, 0))
+
+            // background(0)
+        }
+
+        function draw() {
+            blendMode(BLEND)
+            background(0, 0, 0, 0.1)
+            blendMode(SCREEN)
+
+            surfaces.forEach(s => s.draw())
+
+            photons.forEach(p => {
+                surfaces.forEach(
+                    s => p.refract(s)
+                )
+                p.update()
+                p.draw()
+            })
+        }
+
+        // function mouseClicked() {
+        //     b = new Ball(mouseX, mouseY)
+        //     // b.addForce(createVector(0, -30000))
+        // }
+    </script>
+</body>
+
+</html>

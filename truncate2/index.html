@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>truncate ii</title>
+    <style>
+        body {
+            display: flex;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            background-color: #000;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.0.0/p5.js"></script>
+    <script>
+        let s = 120;
+        let phase = 0;
+        let octaOffset = 1.81712059283;
+        let octaCuboOffset = 1.1856311015;
+
+
+        function setup() {
+            createCanvas(800, 800, WEBGL);
+        }
+
+        function ease2(t) {
+            return t < 0.5 ? ease(t * 2) / 2 : 0.5 + ease((t - 0.5) * 2) / 2;
+        }
+
+        // function ease (t) {
+        //     return -1/2 * (Math.cos(Math.PI * t) - 1) + 1;
+        // }
+        function ease(t, b = 1, c = 1, d = 1) {
+            t /= d / 2;
+            if (t < 1) return c / 2 * t * t * t + b;
+            t -= 2;
+            return c / 2 * (t * t * t + 2) + b;
+        };
+
+        function draw() {
+            let t = new Date() / 1000;
+            let loopTime = 3
+
+            let easePeriod = loopTime * 2;
+            let thetaWhole = ease2((t % easePeriod) / easePeriod);
+            phase = Math.floor(thetaWhole * 4) % 4;
+
+            let theta = (thetaWhole * 4) % 1;
+
+            console.log(phase, theta);
+
+            background(0);
+            noFill();
+            stroke(255);
+            strokeWeight(3);
+            // strokeCap(ROUND);
+            rotate(-Math.PI / 6, createVector(1, 0, 0));
+            rotate(t / 6 * Math.PI, createVector(0, 1, 0));
+
+            let R = 200;
+            let side = R * 4 / Math.sqrt(6);
+            let branch = side / 2 / Math.cos(Math.PI / 6);
+            let h = Math.sqrt(R * R - branch * branch);
+
+            let f2fAngle = Math.acos(1 / 3);
+            let shiftAngle = Math.PI / 6;
+
+            for (let i = 0; i < 4; i++) {
+                push();
+                console.log(R, branch, side, h)
+                switch (i) {
+                    case 0:
+                        rotate(0, createVector(cos(2 * Math.PI / 3 + shiftAngle), 0, sin(2 * Math.PI / 3 +
+                        shiftAngle)));
+                        translate(0, h, 0);
+                        break;
+                    case 1:
+                        rotate(f2fAngle, createVector(cos(2 * Math.PI / 3 + shiftAngle), 0, sin(2 * Math.PI / 3 +
+                            shiftAngle)));
+                        translate(0, -h, 0);
+                        break;
+                    case 2:
+                        rotate(f2fAngle, createVector(cos(4 * Math.PI / 3 + shiftAngle), 0, sin(4 * Math.PI / 3 +
+                            shiftAngle)));
+                        translate(0, -h, 0);
+                        break;
+                    case 3:
+                        rotate(f2fAngle, createVector(cos(6 * Math.PI / 3 + shiftAngle), 0, sin(6 * Math.PI / 3 +
+                            shiftAngle)));
+                        translate(0, -h, 0);
+                        break;
+                }
+
+                beginShape(TESS);
+                let p1 = createVector(branch * cos(2 * Math.PI / 3), 0, branch * sin(2 * Math.PI / 3));
+                let p2 = createVector(branch * cos(4 * Math.PI / 3), 0, branch * sin(4 * Math.PI / 3));
+                let p3 = createVector(branch * cos(6 * Math.PI / 3), 0, branch * sin(6 * Math.PI / 3));
+
+                let q1 = createVector();
+                let q2 = createVector();
+                let q3 = createVector();
+                let q4 = createVector();
+                let q5 = createVector();
+                let q6 = createVector();
+
+                if (phase == 0) {
+                    q1 = p5.Vector.add(p1, p5.Vector.mult(p5.Vector.sub(p3, p1), 0.5 * theta));
+                    q2 = p5.Vector.add(p1, p5.Vector.mult(p5.Vector.sub(p2, p1), 0.5 * theta));
+                    q3 = p5.Vector.add(p2, p5.Vector.mult(p5.Vector.sub(p1, p2), 0.5 * theta));
+                    q4 = p5.Vector.add(p2, p5.Vector.mult(p5.Vector.sub(p3, p2), 0.5 * theta));
+                    q5 = p5.Vector.add(p3, p5.Vector.mult(p5.Vector.sub(p2, p3), 0.5 * theta));
+                    q6 = p5.Vector.add(p3, p5.Vector.mult(p5.Vector.sub(p1, p3), 0.5 * theta));
+                } else if (phase == 1) {
+                    q1 = p5.Vector.add(p1, p5.Vector.mult(p5.Vector.sub(p3, p1), 0.5 * theta));
+                    q2 = p5.Vector.add(p1, p5.Vector.mult(p5.Vector.sub(p2, p1), 0.5 * theta));
+                    q3 = p5.Vector.add(p2, p5.Vector.mult(p5.Vector.sub(p1, p2), 0.5 * theta));
+                    q4 = p5.Vector.add(p2, p5.Vector.mult(p5.Vector.sub(p3, p2), 0.5 * theta));
+                    q5 = p5.Vector.add(p3, p5.Vector.mult(p5.Vector.sub(p2, p3), 0.5 * theta));
+                    q6 = p5.Vector.add(p3, p5.Vector.mult(p5.Vector.sub(p1, p3), 0.5 * theta));
+                }
+
+                vertex(q1.x, q1.y, q1.z);
+                vertex(q2.x, q2.y, q2.z);
+                vertex(q3.x, q3.y, q3.z);
+                vertex(q4.x, q4.y, q4.z);
+                vertex(q5.x, q5.y, q5.z);
+                vertex(q6.x, q6.y, q6.z);
+                endShape(CLOSE);
+                pop();
+            }
+        }
+    </script>
+</body>
+
+</html>

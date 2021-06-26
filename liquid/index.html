@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>liquid</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.0.0/p5.js"></script>
+    <script>
+        const SIZE = 400;
+
+        let simplex = new SimplexNoise();
+
+        let noiseImage;
+        let noiseSizeScale = 0.006;
+        let forceSizeScale = 0.1;
+        let displacementScale = 0.001;
+        let displacementMultiplier = 1000;
+        let timeScale = 0.0001;
+
+        let particles = [];
+
+        class Particle {
+            constructor (x, y) {
+                this.position = new p5.Vector(x, y);
+                this.originalPosition = this.position.copy();
+            }
+
+            move (dx, dy, multiplier = 1) {
+                // console.log(this.position)
+                this.position.add(dx * multiplier, dy * multiplier);
+                // console.log('x', this.position)
+            }
+
+            getPosition () {
+                return this.position;
+            }
+            
+            draw () {
+                rect(this.position.x, this.position.y, 1, 1);
+            }
+        }
+
+        function preload() {
+            // img = loadImage('image.jpg');
+        }
+
+        function setup() {
+            createCanvas(SIZE, SIZE);
+            // image(img, 0, 0);
+
+            noiseImage = createImage(SIZE, SIZE);
+            noiseImage.loadPixels();
+
+            for (let i = 0; i < SIZE; i+=1) {
+                particles.push([])
+                for (let j = 0; j < SIZE; j+=1) {
+                    particles[i].push(new Particle(i, j));
+                }
+            }
+        }
+
+        function draw () {
+            let t = new Date() * timeScale;
+            background (255);
+            fill(0);
+            
+            // for (let i in particles) {
+            //     for(let j in particles[i]) {
+            //         let pos = particles[i][j].getPosition();
+            //         let dx = simplex.noise4D(forceSizeScale * pos.x, forceSizeScale * pos.y, t, 0) * 5;
+            //         let dy = simplex.noise4D(forceSizeScale * pos.x, forceSizeScale * pos.y, t, 100) * 5;
+
+            //         particles[i][j].move(dx, dy);
+            //         // particles[i].draw();
+            //     }
+            // }
+
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE; j++) {
+                    // let c = simplex.noise3D(i * noiseSizeScale, j * noiseSizeScale, t);
+
+                    let dx = simplex.noise4D(i * displacementScale, j * displacementScale, t, 0) * displacementMultiplier;
+                    let dy = simplex.noise4D(i * displacementScale, j * displacementScale, t, 100000) * displacementMultiplier;
+
+                    // let dx = particles[i][j].position.x - particles[i][j].originalPosition.x;
+                    // let dy = particles[i][j].position.y - particles[i][j].originalPosition.y;
+
+                    // let dx = 0;
+                    // let dy = 0;
+                    let c = simplex.noise3D((i + dx) * noiseSizeScale, (j + dy) * noiseSizeScale, 0);
+
+                    noiseImage.set(i, j, simplexToColor(c));
+                }
+            }
+            noiseImage.updatePixels();
+            image(noiseImage, 0, 0);
+
+        }
+
+
+
+        function simplexToColor (c) {
+            return (c + 1) * 255 / 2;
+        }
+    </script>
+</body>
+</html>

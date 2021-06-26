@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            display: flex;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            background-color: #333;
+        }
+        canvas {
+            margin: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.0.0/p5.js"></script>
+    <script>
+        const fluidRho = 0.1
+        const fluidEta = 0.15
+
+        class Ball {
+            constructor(x, y, r = 50, rho = 0.075) {
+                this.pos = createVector(x, y)
+                this.r = r
+
+                this.rho = rho
+                this.acc = createVector(0, 0) // acceleration
+                this.vel = createVector(0, 0) // acceleration
+            }
+
+            getMass() {
+                return Math.PI * this.r * this.r * this.rho
+            }
+
+            addForce(f) {
+                this.acc.add(p5.Vector.div(f, this.getMass()))
+            }
+
+            update() {
+                this.pos.add(p5.Vector.mult(this.vel, deltaTime / 100))
+                this.vel.add(p5.Vector.mult(this.acc, deltaTime / 100))
+                this.acc.set(0, 0)
+            }
+
+            draw() {
+                // console.log(this.pos, this.vel, this.acc)
+                circle(this.pos.x, this.pos.y, this.r * 2)
+            }
+
+            getVolumePatial(x) {
+                // x is ratio of height aka 2 * r
+                const xClamped = Math.min(1, Math.max(0, x))
+                const r2 = this.r * this.r
+                const h = (xClamped - 0.5) * 2
+                const v = Math.asin(h) + h * Math.sqrt(1 - h * h) + Math.PI / 2
+                return v * r2
+                    
+                // return xClamped * Math.PI * this.r * this.r
+            }
+        }
+
+        let b = null
+        let fluidLevel = 0.6
+        let fluidSurface = 0
+
+        function setup() {
+            createCanvas(500, 500)
+            fluidSurface = height * (1 - fluidLevel)
+        }
+
+        function draw() {
+            background(255)
+
+            if (!b) {
+                fill(0)
+                rect(0, fluidSurface, width, height - fluidSurface)
+                return
+            }
+
+            let submergedHeight = b.pos.y + b.r - fluidSurface
+            let submergedHeightRatio = submergedHeight / (b.r * 2)
+            console.log(submergedHeight, Math.max(0, Math.min(1, submergedHeightRatio)))
+            let submergedVolume = b.getVolumePatial(submergedHeightRatio)
+
+            let fluidVolume = height * width * (1 - fluidLevel)
+            fluidSurface = (fluidVolume - submergedVolume) / width
+
+            fill(0)
+            rect(0, fluidSurface, width, height - fluidSurface)
+
+            fill(255)
+
+            b.addForce(p5.Vector.mult(createVector(0, 9.8), b.getMass())) // gravity
+            b.addForce(p5.Vector.mult(createVector(0, 9.8), -submergedVolume * fluidRho)) // bouyancy force
+
+            if (b.pos.y > fluidSurface) {
+                let viscousityMag = 6 * Math.PI * b.r * fluidEta * b.vel.mag()
+                let viscousForce = b.vel.copy()
+                viscousForce.normalize()
+                viscousForce.mult(-viscousityMag)
+                b.addForce(viscousForce) // viscous force
+            }
+
+
+            b.update()
+            b.draw()
+        }
+
+        function mouseClicked() {
+            b = new Ball(mouseX, mouseY)
+            // b.addForce(createVector(0, -30000))
+        }
+    </script>
+</body>
+
+</html>
